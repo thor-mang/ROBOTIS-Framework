@@ -20,7 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES robotis_device
-  CATKIN_DEPENDS roscpp rospy
+  CATKIN_DEPENDS roscpp rospy dynamixel_sdk robotis_framework_common
 #  DEPENDS system_lib
 )
 

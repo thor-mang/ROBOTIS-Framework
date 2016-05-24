@@ -26,6 +26,7 @@
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>dynamixel_sdk</run_depend>
+  <run_depend>robotis_framework_common</run_depend>
 
 
   <export>
