@@ -1269,6 +1269,8 @@ void RobotisController::SetCtrlModuleThread(std::string ctrl_module)
 
 void RobotisController::GazeboJointStatesCallback(const sensor_msgs::JointState::ConstPtr &msg)
 {
+    queue_mutex_.lock();
+  
     for(unsigned int _i = 0; _i < msg->name.size(); _i++)
     {
         std::map<std::string, Dynamixel*>::iterator _d_it = robot->dxls.find((std::string)msg->name[_i]);
@@ -1286,6 +1288,8 @@ void RobotisController::GazeboJointStatesCallback(const sensor_msgs::JointState:
             _it->second->dxl_state->goal_position = _it->second->dxl_state->present_position;
         init_pose_loaded_ = true;
     }
+    
+    queue_mutex_.unlock();
 }
 
 bool RobotisController::CheckTimerStop()
