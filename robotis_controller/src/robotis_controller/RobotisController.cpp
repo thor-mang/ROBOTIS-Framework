@@ -378,28 +378,28 @@ void RobotisController::QueueThread()
     _ros_node.setCallbackQueue(&_callback_queue);
 
     /* subscriber */
-    ros::Subscriber _sync_write_item_sub    = _ros_node.subscribe("/robotis/sync_write_item", 10, &RobotisController::SyncWriteItemCallback, this);
-    ros::Subscriber _joint_ctrl_modules_sub = _ros_node.subscribe("/robotis/set_joint_ctrl_modules", 10, &RobotisController::SetJointCtrlModuleCallback, this);
-    ros::Subscriber _enable_ctrl_module_sub	= _ros_node.subscribe("/robotis/enable_ctrl_module", 10, &RobotisController::SetCtrlModuleCallback, this);
-    ros::Subscriber _control_mode_sub       = _ros_node.subscribe("/robotis/set_control_mode", 10, &RobotisController::SetControllerModeCallback, this);
-    ros::Subscriber _joint_states_sub       = _ros_node.subscribe("/robotis/set_joint_states", 10, &RobotisController::SetJointStatesCallback, this);
+    ros::Subscriber _sync_write_item_sub    = _ros_node.subscribe("robotis/sync_write_item", 10, &RobotisController::SyncWriteItemCallback, this);
+    ros::Subscriber _joint_ctrl_modules_sub = _ros_node.subscribe("robotis/set_joint_ctrl_modules", 10, &RobotisController::SetJointCtrlModuleCallback, this);
+    ros::Subscriber _enable_ctrl_module_sub	= _ros_node.subscribe("robotis/enable_ctrl_module", 10, &RobotisController::SetCtrlModuleCallback, this);
+    ros::Subscriber _control_mode_sub       = _ros_node.subscribe("robotis/set_control_mode", 10, &RobotisController::SetControllerModeCallback, this);
+    ros::Subscriber _joint_states_sub       = _ros_node.subscribe("robotis/set_joint_states", 10, &RobotisController::SetJointStatesCallback, this);
 
     /* publisher */
-    goal_joint_state_pub        = _ros_node.advertise<sensor_msgs::JointState>("/robotis/goal_joint_states", 10);
-    present_joint_state_pub     = _ros_node.advertise<sensor_msgs::JointState>("/robotis/present_joint_states", 10);
-    current_module_pub          = _ros_node.advertise<robotis_controller_msgs::JointCtrlModule>("/robotis/present_joint_ctrl_modules", 10);
+    goal_joint_state_pub        = _ros_node.advertise<sensor_msgs::JointState>("robotis/goal_joint_states", 10);
+    present_joint_state_pub     = _ros_node.advertise<sensor_msgs::JointState>("robotis/present_joint_states", 10);
+    current_module_pub          = _ros_node.advertise<robotis_controller_msgs::JointCtrlModule>("robotis/present_joint_ctrl_modules", 10);
 
     ros::Subscriber _gazebo_joint_states_sub;
     if(gazebo_mode == true)
     {
-        _gazebo_joint_states_sub = _ros_node.subscribe("/" + gazebo_robot_name + "/joint_states", 10, &RobotisController::GazeboJointStatesCallback, this);
+        _gazebo_joint_states_sub = _ros_node.subscribe("/gazebo/" + gazebo_robot_name + "/joint_states", 10, &RobotisController::GazeboJointStatesCallback, this);
 
         for(std::map<std::string, Dynamixel*>::iterator _it = robot->dxls.begin(); _it != robot->dxls.end(); _it++)
-            gazebo_joint_pub[_it->first] = _ros_node.advertise<std_msgs::Float64>("/" + gazebo_robot_name + "/" + _it->first + "_pos/command", 1);
+            gazebo_joint_pub[_it->first] = _ros_node.advertise<std_msgs::Float64>("/gazebo/" + gazebo_robot_name + "/" + _it->first + "_pos/command", 1);
     }
 
     /* service */
-    ros::ServiceServer _joint_module_server = _ros_node.advertiseService("/robotis/get_present_joint_ctrl_modules", &RobotisController::GetCtrlModuleCallback, this);
+    ros::ServiceServer _joint_module_server = _ros_node.advertiseService("robotis/get_present_joint_ctrl_modules", &RobotisController::GetCtrlModuleCallback, this);
 
     while(_ros_node.ok())
     {
