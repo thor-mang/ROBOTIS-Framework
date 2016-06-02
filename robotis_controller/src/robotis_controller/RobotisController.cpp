@@ -251,8 +251,8 @@ bool RobotisController::Initialize(const std::string robot_file_path, const std:
         port_to_bulk_read[_dxl->port_name]->AddParam(_dxl->id, _bulkread_start_addr, _bulkread_data_length);
 
         // Torque ON
-        if(WriteCtrlItem(_joint_name, _dxl->torque_enable_item->item_name, 1) != COMM_SUCCESS)
-            WriteCtrlItem(_joint_name, _dxl->torque_enable_item->item_name, 1);
+        if(WriteCtrlItem(_joint_name, _dxl->torque_enable_item->item_name, 0) != COMM_SUCCESS)
+            WriteCtrlItem(_joint_name, _dxl->torque_enable_item->item_name, 0);
     }
 
     queue_thread_ = boost::thread(boost::bind(&RobotisController::QueueThread, this));
@@ -692,6 +692,16 @@ void RobotisController::Process()
 
     if(controller_mode_ == MOTION_MODULE_MODE)
     {
+
+      if(direct_sync_write_.size() > 0)
+      {
+          for(int _i = 0; _i < direct_sync_write_.size(); _i++)
+          {
+              direct_sync_write_[_i]->TxPacket();
+              direct_sync_write_[_i]->ClearParam();
+          }
+          direct_sync_write_.clear();
+      }
         // Call MotionModule Process()
         // -> for loop : call MotionModule list -> Process()
         if(motion_modules_.size() > 0)
@@ -889,11 +899,11 @@ void RobotisController::RemoveSensorModule(SensorModule *module)
 
 void RobotisController::SyncWriteItemCallback(const robotis_controller_msgs::SyncWriteItem::ConstPtr &msg)
 {
+  ROS_INFO("SYNC WRITE OUT CALLBACK");
     for(int _i = 0; _i < msg->joint_name.size(); _i++)
     {
         Dynamixel           *_dxl           = robot->dxls[msg->joint_name[_i]];
         ControlTableItem    *_item          = _dxl->ctrl_table[msg->item_name];
-
         PortHandler         *_port          = robot->ports[_dxl->port_name];
         PacketHandler       *_packet_handler= PacketHandler::GetPacketHandler(_dxl->protocol_version);
 
