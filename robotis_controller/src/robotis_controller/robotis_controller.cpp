@@ -417,10 +417,6 @@ bool RobotisController::initialize(const std::string robot_file_path, const std:
 //    ROS_WARN("[%12s] start_addr: %d, data_length: %d", joint_name.c_str(), bulkread_start_addr, bulkread_data_length);
     if (bulkread_start_addr != 0)
       port_to_bulk_read_[dxl->port_name_]->addParam(dxl->id_, bulkread_start_addr, bulkread_data_length);
-
-    // Torque ON
-    if (writeCtrlItem(joint_name, dxl->torque_enable_item_->item_name_, 1) != COMM_SUCCESS)
-      writeCtrlItem(joint_name, dxl->torque_enable_item_->item_name_, 1);
   }
 
   for (auto& it : robot_->sensors_)
