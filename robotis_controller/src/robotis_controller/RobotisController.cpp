@@ -249,10 +249,6 @@ bool RobotisController::Initialize(const std::string robot_file_path, const std:
 
 //        ROS_WARN("[%12s] start_addr: %d, data_length: %d", _joint_name.c_str(), _bulkread_start_addr, _bulkread_data_length);
         port_to_bulk_read[_dxl->port_name]->AddParam(_dxl->id, _bulkread_start_addr, _bulkread_data_length);
-
-        // Torque ON
-        if(WriteCtrlItem(_joint_name, _dxl->torque_enable_item->item_name, 1) != COMM_SUCCESS)
-            WriteCtrlItem(_joint_name, _dxl->torque_enable_item->item_name, 1);
     }
 
     queue_thread_ = boost::thread(boost::bind(&RobotisController::QueueThread, this));
