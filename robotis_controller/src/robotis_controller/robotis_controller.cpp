@@ -651,11 +651,9 @@ void RobotisController::msgQueueThread()
   ros::ServiceServer joint_module_server = ros_node.advertiseService("robotis/get_present_joint_ctrl_modules",
                                                         &RobotisController::getCtrlModuleCallback, this);
 
+  ros::WallDuration duration(CONTROL_CYCLE_MSEC/1000.0);
   while (ros_node.ok())
-  {
-    callback_queue.callAvailable();
-    usleep(100);
-  }
+    callback_queue.callAvailable(duration);
 }
 
 void *RobotisController::timerThread(void *param)
