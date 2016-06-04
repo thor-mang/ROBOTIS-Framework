@@ -625,7 +625,7 @@ void RobotisController::msgQueueThread()
 
   ros::Subscriber gazebo_joint_states_sub;
   if (gazebo_mode_ == true)
-    gazebo_joint_states_sub = ros_node.subscribe("/gazebo/" + gazebo_robot_name_ + "/joint_states", 10,
+    gazebo_joint_states_sub = ros_node.subscribe("/gazebo/" + gazebo_robot_name_ + "/joints/joint_states", 10,
                                                  &RobotisController::gazeboJointStatesCallback, this);
 
   /* publisher */
@@ -639,11 +639,11 @@ void RobotisController::msgQueueThread()
     for (auto& it : robot_->dxls_)
     {
       gazebo_joint_position_pub_[it.first] = ros_node.advertise<std_msgs::Float64>(
-                                                "/gazebo/" + gazebo_robot_name_ + "/" + it.first + "_position/command", 1);
+                                                "/gazebo/" + gazebo_robot_name_ + "/joints/" + it.first + "_position/command", 1);
       gazebo_joint_velocity_pub_[it.first] = ros_node.advertise<std_msgs::Float64>(
-                                                "/gazebo/" + gazebo_robot_name_ + "/" + it.first + "_velocity/command", 1);
+                                                "/gazebo/" + gazebo_robot_name_ + "/joints/" + it.first + "_velocity/command", 1);
       gazebo_joint_effort_pub_[it.first]   = ros_node.advertise<std_msgs::Float64>(
-                                                "/gazebo/" + gazebo_robot_name_ + "/" + it.first + "_effort/command", 1);
+                                                "/gazebo/" + gazebo_robot_name_ + "/joints/" + it.first + "_effort/command", 1);
     }
   }
 
