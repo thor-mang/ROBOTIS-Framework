@@ -388,10 +388,10 @@ void RobotisController::QueueThread()
     ros::Subscriber _gazebo_joint_states_sub;
     if(gazebo_mode == true)
     {
-        _gazebo_joint_states_sub = _ros_node.subscribe("/gazebo/" + gazebo_robot_name + "/joint_states", 10, &RobotisController::GazeboJointStatesCallback, this);
+        _gazebo_joint_states_sub = _ros_node.subscribe("/gazebo/" + gazebo_robot_name + "/joints/joint_states", 10, &RobotisController::GazeboJointStatesCallback, this);
 
         for(std::map<std::string, Dynamixel*>::iterator _it = robot->dxls.begin(); _it != robot->dxls.end(); _it++)
-            gazebo_joint_pub[_it->first] = _ros_node.advertise<std_msgs::Float64>("/gazebo/" + gazebo_robot_name + "/" + _it->first + "_pos/command", 1);
+            gazebo_joint_pub[_it->first] = _ros_node.advertise<std_msgs::Float64>("/gazebo/" + gazebo_robot_name + "/joints/" + _it->first + "_pos/command", 1);
     }
 
     /* service */
