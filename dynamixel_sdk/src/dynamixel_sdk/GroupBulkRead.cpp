@@ -136,7 +136,7 @@ int GroupBulkRead::RxPacket()
         _result = ph_->ReadRx(port_, length_list_[_id], data_list_[_id]);
         if(_result != COMM_SUCCESS)
         {
-            fprintf(stderr, "[GroupBulkRead::RxPacket] ID %d result : %d !!!!!!!!!!\n", _id, _result);
+            //fprintf(stderr, "[GroupBulkRead::RxPacket] ID %d result : %d !!!!!!!!!!\n", _id, _result);
             return _result;
         }
     }
