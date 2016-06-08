@@ -629,8 +629,8 @@ void RobotisController::msgQueueThread()
                                                  &RobotisController::gazeboJointStatesCallback, this);
 
   /* publisher */
-  goal_joint_state_pub_     = ros_node.advertise<sensor_msgs::JointState>("robotis/goal_joint_states", 10);
-  present_joint_state_pub_  = ros_node.advertise<sensor_msgs::JointState>("robotis/present_joint_states", 10);
+  goal_joint_state_pub_     = ros_node.advertise<sensor_msgs::JointState>("robotis/joints/goal_joint_states", 10);
+  present_joint_state_pub_  = ros_node.advertise<sensor_msgs::JointState>("robotis/joints/present_joint_states", 10);
   current_module_pub_       = ros_node.advertise<robotis_controller_msgs::JointCtrlModule>(
                                                               "robotis/present_joint_ctrl_modules", 10);
 
