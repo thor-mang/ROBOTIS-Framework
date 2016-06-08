@@ -43,7 +43,7 @@ void RobotisController::InitSyncWrite()
             if(++_error_cnt > 10)
             {
                 ROS_ERROR("[RobotisController] bulk read fail!!");
-                exit(-1);
+                break;
             }
             usleep(10*1000);
             _result = _it->second->TxRxPacket();
@@ -408,7 +408,7 @@ void *RobotisController::ThreadProc(void *param)
     static struct timespec next_time;
     static struct timespec curr_time;
 
-    ROS_INFO("controller::thread_proc");
+    ROS_DEBUG("controller::thread_proc started");
 
     clock_gettime(CLOCK_MONOTONIC, &next_time);
 
@@ -472,10 +472,16 @@ void RobotisController::StartTimer()
             ROS_ERROR("pthread_attr_setschedparam error = %d\n",error);
 
         // create and start the thread
-        if((error = pthread_create(&this->timer_thread_, &attr, this->ThreadProc, this))!= 0) {
-            ROS_ERROR("timer thread create fail!!");
-            exit(-1);
-        }
+        if((error = pthread_create(&this->timer_thread_, &attr, this->ThreadProc, this)) != 0)
+        {
+            ROS_WARN("Creating real time thread failed! Ensure you have root permissions! Fallback to default scheduler.");
+            pthread_attr_setinheritsched(&attr,  PTHREAD_INHERIT_SCHED);
+            if((error = pthread_create(&this->timer_thread_, &attr, this->ThreadProc, this)) != 0)
+            {
+              ROS_ERROR("Creating main control thread failed!");
+              exit(-1);
+            }
+        } 
     }
 
     this->is_timer_running_ = true;
