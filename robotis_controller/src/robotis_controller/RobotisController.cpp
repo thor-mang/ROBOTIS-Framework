@@ -43,7 +43,7 @@ void RobotisController::InitSyncWrite()
             if(++_error_cnt > 10)
             {
                 ROS_ERROR("[RobotisController] bulk read fail!!");
-                exit(-1);
+                break;
             }
             usleep(10*1000);
             _result = _it->second->TxRxPacket();
@@ -249,10 +249,6 @@ bool RobotisController::Initialize(const std::string robot_file_path, const std:
 
 //        ROS_WARN("[%12s] start_addr: %d, data_length: %d", _joint_name.c_str(), _bulkread_start_addr, _bulkread_data_length);
         port_to_bulk_read[_dxl->port_name]->AddParam(_dxl->id, _bulkread_start_addr, _bulkread_data_length);
-
-        // Torque ON
-        if(WriteCtrlItem(_joint_name, _dxl->torque_enable_item->item_name, 0) != COMM_SUCCESS)
-            WriteCtrlItem(_joint_name, _dxl->torque_enable_item->item_name, 0);
     }
 
     queue_thread_ = boost::thread(boost::bind(&RobotisController::QueueThread, this));
@@ -385,27 +381,25 @@ void RobotisController::QueueThread()
     ros::Subscriber _joint_states_sub       = _ros_node.subscribe("robotis/set_joint_states", 10, &RobotisController::SetJointStatesCallback, this);
 
     /* publisher */
-    goal_joint_state_pub        = _ros_node.advertise<sensor_msgs::JointState>("robotis/goal_joint_states", 10);
-    present_joint_state_pub     = _ros_node.advertise<sensor_msgs::JointState>("robotis/present_joint_states", 10);
+    goal_joint_state_pub        = _ros_node.advertise<sensor_msgs::JointState>("robotis/joints/goal_joint_states", 10);
+    present_joint_state_pub     = _ros_node.advertise<sensor_msgs::JointState>("robotis/joints/present_joint_states", 10);
     current_module_pub          = _ros_node.advertise<robotis_controller_msgs::JointCtrlModule>("robotis/present_joint_ctrl_modules", 10);
 
     ros::Subscriber _gazebo_joint_states_sub;
     if(gazebo_mode == true)
     {
-        _gazebo_joint_states_sub = _ros_node.subscribe("/gazebo/" + gazebo_robot_name + "/joint_states", 10, &RobotisController::GazeboJointStatesCallback, this);
+        _gazebo_joint_states_sub = _ros_node.subscribe("/gazebo/" + gazebo_robot_name + "/joints/joint_states", 10, &RobotisController::GazeboJointStatesCallback, this);
 
         for(std::map<std::string, Dynamixel*>::iterator _it = robot->dxls.begin(); _it != robot->dxls.end(); _it++)
-            gazebo_joint_pub[_it->first] = _ros_node.advertise<std_msgs::Float64>("/gazebo/" + gazebo_robot_name + "/" + _it->first + "_pos/command", 1);
+            gazebo_joint_pub[_it->first] = _ros_node.advertise<std_msgs::Float64>("/gazebo/" + gazebo_robot_name + "/joints/" + _it->first + "_pos/command", 1);
     }
 
     /* service */
     ros::ServiceServer _joint_module_server = _ros_node.advertiseService("robotis/get_present_joint_ctrl_modules", &RobotisController::GetCtrlModuleCallback, this);
 
+    ros::WallDuration duration(CONTROL_CYCLE_MSEC/1000.0);
     while(_ros_node.ok())
-    {
-        _callback_queue.callAvailable();
-        usleep(100);
-    }
+      _callback_queue.callAvailable(duration);
 }
 
 void *RobotisController::ThreadProc(void *param)
@@ -414,7 +408,7 @@ void *RobotisController::ThreadProc(void *param)
     static struct timespec next_time;
     static struct timespec curr_time;
 
-    ROS_INFO("controller::thread_proc");
+    ROS_DEBUG("controller::thread_proc started");
 
     clock_gettime(CLOCK_MONOTONIC, &next_time);
 
@@ -478,10 +472,16 @@ void RobotisController::StartTimer()
             ROS_ERROR("pthread_attr_setschedparam error = %d\n",error);
 
         // create and start the thread
-        if((error = pthread_create(&this->timer_thread_, &attr, this->ThreadProc, this))!= 0) {
-            ROS_ERROR("timer thread create fail!!");
-            exit(-1);
-        }
+        if((error = pthread_create(&this->timer_thread_, &attr, this->ThreadProc, this)) != 0)
+        {
+            ROS_WARN("Creating real time thread failed! Ensure you have root permissions! Fallback to default scheduler.");
+            pthread_attr_setinheritsched(&attr,  PTHREAD_INHERIT_SCHED);
+            if((error = pthread_create(&this->timer_thread_, &attr, this->ThreadProc, this)) != 0)
+            {
+              ROS_ERROR("Creating main control thread failed!");
+              exit(-1);
+            }
+        } 
     }
 
     this->is_timer_running_ = true;
