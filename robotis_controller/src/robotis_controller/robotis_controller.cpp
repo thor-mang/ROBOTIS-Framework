@@ -341,8 +341,9 @@ bool RobotisController::initialize(const std::string robot_file_path, const std:
     if (ping(joint_name) != 0)
     {
       usleep(10 * 1000);
-      if (ping(joint_name) != 0)
-        ROS_ERROR("JOINT[%s] does NOT respond!!", joint_name.c_str());
+      int resp = ping(joint_name));
+      if(resp != 0)
+        ROS_ERROR_STREAM("Joint " << joint_name << " does not respond. Code: " << resp);
     }
   }
 
@@ -514,7 +515,7 @@ void RobotisController::initializeDevice(const std::string init_file_path)
 
       if (dxl == NULL)
       {
-        ROS_WARN("Joint [%s] was not found.", joint_name.c_str());
+        ROS_WARN("Joint [%s] was not found. Can't flash settings.", joint_name.c_str());
         continue;
       }
       if (DEBUG_PRINT)
@@ -532,7 +533,7 @@ void RobotisController::initializeDevice(const std::string init_file_path)
         ControlTableItem *item = dxl->ctrl_table_[item_name];
         if (item == NULL)
         {
-          ROS_WARN("Control Item [%s] was not found.", item_name.c_str());
+          ROS_WARN("Control Item [%s] was not found. Can't flash settings.", item_name.c_str());
           continue;
         }
 
@@ -1402,6 +1403,11 @@ void RobotisController::syncWriteItemCallback(const robotis_controller_msgs::Syn
 {
   for (int i = 0; i < msg->joint_name.size(); i++)
   {
+    if (robot->dxls.count(msg->joint_name[_i]) == 0) {
+      ROS_WARN_STREAM("Unknown joint: " << msg->joint_name[_i]);
+      continue;
+    }
+
     Device           *device;
 
     auto d_it1 = robot_->dxls_.find(msg->joint_name[i]);
