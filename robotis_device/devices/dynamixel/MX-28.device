@@ -3,11 +3,11 @@ model_name  = MX-28
 device_type = dynamixel
 
 [type info]
-value_of_0_radian_position      = 2048
+value_of_0_radian_position      = 0
 value_of_min_radian_position    = 0
 value_of_max_radian_position    = 4095
-min_radian                      = -3.14159265
-max_radian                      =  3.14159265
+min_radian                      = 0
+max_radian                      = 6.28318530718
 
 torque_enable_item_name         = torque_enable
 present_position_item_name      = present_position
