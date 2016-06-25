@@ -1032,6 +1032,9 @@ void RobotisController::process()
             {
 //              if(result_state->goal_position == 0 && dxl->id == 3)
 //                ROS_INFO("[MODULE:%s][ID:%2d] goal position = %f", (*module_it)->GetModuleName().c_str(), dxl->id, dxl_state->goal_position);
+              if (std::isnan(result_state->goal_position_))
+                continue;
+
               dxl_state->goal_position_ = result_state->goal_position_;
 
               if (gazebo_mode_ == false)
