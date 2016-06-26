@@ -790,9 +790,9 @@ void RobotisController::Process()
                                 std::pair<std::string,std::string> key = std::make_pair(_dxl->port_name,_dxl->model_name);
 
                                 port_to_sync_write_position[key]->ChangeParam(_dxl->id, _sync_write_data);
-                                if (_dxl->model_name == "MX-106") {
-                                  ROS_INFO_STREAM_THROTTLE(0.1, "Sending goal to address: " << port_to_sync_write_position[key]->GetAddress());
-                                }
+//                                if (_dxl->model_name == "MX-106") {
+//                                  ROS_INFO_STREAM_THROTTLE(0.1, "Sending goal to address: " << port_to_sync_write_position[key]->GetAddress());
+//                                }
                             }
                         }
                         else if((*module_it)->control_mode == VELOCITY_CONTROL)
