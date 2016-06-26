@@ -767,6 +767,9 @@ void RobotisController::Process()
                                     printf("goal_pos : %f |  position_offset : %f | pos_data : %d\n", _dxl_state->goal_position , _dxl_state->position_offset, _pos_data);
 
                                 port_to_sync_write_position[_dxl->port_name]->ChangeParam(_dxl->id, _sync_write_data);
+                                if (_dxl->model_name == "MX-106") {
+                                  ROS_INFO_STREAM_THROTTLE(0.1, "Sending goal to address: " << port_to_sync_write_position[_dxl->port_name]->GetAddress());
+                                }
                             }
                         }
                         else if((*module_it)->control_mode == VELOCITY_CONTROL)
