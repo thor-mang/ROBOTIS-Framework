@@ -105,7 +105,7 @@ public:
   std::map<std::string, dynamixel::GroupBulkRead *>   port_to_bulk_read_;
 
   /* sync write */
-  std::map<std::string, dynamixel::GroupSyncWrite *>  port_to_sync_write_position_;
+  std::map<std::pair<std::string,std::string>, GroupSyncWrite *> port_to_sync_write_position_; //std::pair<port,model>,group_sync_write
   std::map<std::string, dynamixel::GroupSyncWrite *>  port_to_sync_write_velocity_;
   std::map<std::string, dynamixel::GroupSyncWrite *>  port_to_sync_write_current_;
   std::map<std::string, dynamixel::GroupSyncWrite *>  port_to_sync_write_position_p_gain_;
