@@ -901,7 +901,6 @@ void RobotisController::RemoveSensorModule(SensorModule *module)
 
 void RobotisController::SyncWriteItemCallback(const robotis_controller_msgs::SyncWriteItem::ConstPtr &msg)
 {
-  ROS_INFO("SYNC WRITE OUT CALLBACK");
     for(int _i = 0; _i < msg->joint_name.size(); _i++)
     {
         if (robot->dxls.count(msg->joint_name[_i]) == 0) {
