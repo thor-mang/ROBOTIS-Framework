@@ -927,7 +927,8 @@ void RobotisController::SyncWriteItemCallback(const robotis_controller_msgs::Syn
             for(_idx = 0; _idx < direct_sync_write_.size(); _idx++)
             {
                 if(direct_sync_write_[_idx]->GetPortHandler() == _port &&
-                        direct_sync_write_[_idx]->GetPacketHandler() == _packet_handler)
+                   direct_sync_write_[_idx]->GetPacketHandler() == _packet_handler &&
+                   direct_sync_write_[_idx]->GetAddress() == _item->address)
                     break;
             }
 

@@ -41,6 +41,7 @@ public:
 
     PortHandler     *GetPortHandler()   { return port_; }
     PacketHandler   *GetPacketHandler() { return ph_; }
+    UINT16_T         GetAddress()   { return start_address_;}
 
     bool    AddParam    (UINT8_T id, UINT8_T *data);
     void    RemoveParam (UINT8_T id);
