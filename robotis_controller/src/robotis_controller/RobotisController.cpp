@@ -53,7 +53,7 @@ void RobotisController::InitSyncWrite()
     ROS_INFO("FIRST BULKREAD END");
 
     // clear syncwrite param setting
-    for(std::map<std::string, GroupSyncWrite *>::iterator _it = port_to_sync_write_position.begin(); _it != port_to_sync_write_position.end(); _it++)
+    for(std::map<std::pair<std::string,std::string>, GroupSyncWrite *>::iterator _it = port_to_sync_write_position.begin(); _it != port_to_sync_write_position.end(); _it++)
         _it->second->ClearParam();
     for(std::map<std::string, GroupSyncWrite *>::iterator _it = port_to_sync_write_velocity.begin(); _it != port_to_sync_write_velocity.end(); _it++)
         _it->second->ClearParam();
@@ -89,7 +89,9 @@ void RobotisController::InitSyncWrite()
                     _dxl->dxl_state->present_position = _dxl->ConvertValue2Radian(_read_data) - _dxl->dxl_state->position_offset;   // remove offset
                     _dxl->dxl_state->goal_position = _dxl->dxl_state->present_position;
 
-                    port_to_sync_write_position[_dxl->port_name]->AddParam(_dxl->id, _sync_write_data);
+                    std::pair<std::string,std::string> key = std::make_pair(_dxl->port_name,_dxl->model_name);
+
+                    port_to_sync_write_position[key]->AddParam(_dxl->id, _sync_write_data);
                 }
                 else if(_dxl->present_velocity_item != 0 && _dxl->bulk_read_items[_i]->item_name == _dxl->present_velocity_item->item_name)
                 {
@@ -132,6 +134,25 @@ bool RobotisController::Initialize(const std::string robot_file_path, const std:
             exit(-1);
         }
 
+        // We are iterating through ports, now we iterate through dxls in this port.
+        for(std::map<std::string, Dynamixel*>::iterator _it = robot->dxls.begin(); _it != robot->dxls.end(); _it++)
+        {
+            Dynamixel *_dxl = _it->second;
+            if(_dxl->port_name == _port_name){
+
+                PacketHandler  *_dxl_pkt_handler = PacketHandler::GetPacketHandler(_dxl->protocol_version);
+
+                std::pair<std::string,std::string> key = std::make_pair(_dxl->port_name,_dxl->model_name);
+
+                if(port_to_sync_write_position.count(key) == 0) //If the key is not already in the map
+                    port_to_sync_write_position[key] = new GroupSyncWrite(_port,
+                                                                          _dxl_pkt_handler,
+                                                                          _dxl->goal_position_item->address,
+                                                                          _dxl->goal_position_item->data_length);
+            }
+
+        }
+
         // get the default device info of the port
         std::string _default_device_name = robot->port_default_device[_port_name];
         std::map<std::string, Dynamixel*>::iterator _dxl_it = robot->dxls.find(_default_device_name);
@@ -141,10 +162,10 @@ bool RobotisController::Initialize(const std::string robot_file_path, const std:
             Dynamixel *_default_device = _dxl_it->second;
             _default_pkt_handler = PacketHandler::GetPacketHandler(_default_device->protocol_version);
 
-            port_to_sync_write_position[_port_name] = new GroupSyncWrite(_port,
-                                                                         _default_pkt_handler,
-                                                                         _default_device->goal_position_item->address,
-                                                                         _default_device->goal_position_item->data_length);
+//            port_to_sync_write_position[_port_name] = new GroupSyncWrite(_port,
+//                                                                         _default_pkt_handler,
+//                                                                         _default_device->goal_position_item->address,
+//                                                                         _default_device->goal_position_item->data_length);
 
             port_to_sync_write_velocity[_port_name] = new GroupSyncWrite(_port,
                                                                          _default_pkt_handler,
@@ -506,7 +527,7 @@ void RobotisController::StopTimer()
             for(std::map<std::string, GroupBulkRead *>::iterator _it = port_to_bulk_read.begin(); _it != port_to_bulk_read.end(); _it++)
                 _it->second->RxPacket();
 
-            for(std::map<std::string, GroupSyncWrite *>::iterator _it = port_to_sync_write_position.begin(); _it != port_to_sync_write_position.end(); _it++)
+            for(std::map<std::pair<std::string,std::string>, GroupSyncWrite *>::iterator _it = port_to_sync_write_position.begin(); _it != port_to_sync_write_position.end(); _it++)
                 _it->second->ClearParam();
             for(std::map<std::string, GroupSyncWrite *>::iterator _it = port_to_sync_write_velocity.begin(); _it != port_to_sync_write_velocity.end(); _it++)
                 _it->second->ClearParam();
@@ -766,9 +787,11 @@ void RobotisController::Process()
                                 if(abs(_pos_data) > 151800)
                                     printf("goal_pos : %f |  position_offset : %f | pos_data : %d\n", _dxl_state->goal_position , _dxl_state->position_offset, _pos_data);
 
-                                port_to_sync_write_position[_dxl->port_name]->ChangeParam(_dxl->id, _sync_write_data);
+                                std::pair<std::string,std::string> key = std::make_pair(_dxl->port_name,_dxl->model_name);
+
+                                port_to_sync_write_position[key]->ChangeParam(_dxl->id, _sync_write_data);
                                 if (_dxl->model_name == "MX-106") {
-                                  ROS_INFO_STREAM_THROTTLE(0.1, "Sending goal to address: " << port_to_sync_write_position[_dxl->port_name]->GetAddress());
+                                  ROS_INFO_STREAM_THROTTLE(0.1, "Sending goal to address: " << port_to_sync_write_position[key]->GetAddress());
                                 }
                             }
                         }
@@ -820,7 +843,7 @@ void RobotisController::Process()
         // -> SyncWrite
         if(gazebo_mode == false && _do_sync_write)
         {
-            for(std::map<std::string, GroupSyncWrite *>::iterator _it = port_to_sync_write_position.begin(); _it != port_to_sync_write_position.end(); _it++)
+            for(std::map<std::pair<std::string,std::string>, GroupSyncWrite *>::iterator _it = port_to_sync_write_position.begin(); _it != port_to_sync_write_position.end(); _it++)
                 _it->second->TxPacket();
             for(std::map<std::string, GroupSyncWrite *>::iterator _it = port_to_sync_write_velocity.begin(); _it != port_to_sync_write_velocity.end(); _it++)
                 _it->second->TxPacket();
@@ -842,7 +865,7 @@ void RobotisController::Process()
     {
         queue_mutex_.lock();
 
-        for(std::map<std::string, GroupSyncWrite *>::iterator _it = port_to_sync_write_position.begin(); _it != port_to_sync_write_position.end(); _it++)
+        for(std::map<std::pair<std::string,std::string>, GroupSyncWrite *>::iterator _it = port_to_sync_write_position.begin(); _it != port_to_sync_write_position.end(); _it++)
         {
             _it->second->TxPacket();
             _it->second->ClearParam();
@@ -991,7 +1014,9 @@ void RobotisController::SetJointStatesCallback(const sensor_msgs::JointState::Co
         _sync_write_data[2] = DXL_LOBYTE(DXL_HIWORD(_pos));
         _sync_write_data[3] = DXL_HIBYTE(DXL_HIWORD(_pos));
 
-        port_to_sync_write_position[_dxl->port_name]->AddParam(_dxl->id, _sync_write_data);
+        std::pair<std::string,std::string> key = std::make_pair(_dxl->port_name,_dxl->model_name);
+
+        port_to_sync_write_position[key]->AddParam(_dxl->id, _sync_write_data);
     }
 
     queue_mutex_.unlock();
@@ -1178,7 +1203,9 @@ void RobotisController::SetCtrlModuleThread(std::string ctrl_module)
             _sync_write_data[2] = DXL_LOBYTE(DXL_HIWORD(_pos_data));
             _sync_write_data[3] = DXL_HIBYTE(DXL_HIWORD(_pos_data));
 
-            port_to_sync_write_position[_dxl->port_name]->AddParam(_dxl->id, _sync_write_data);
+            std::pair<std::string,std::string> key = std::make_pair(_dxl->port_name,_dxl->model_name);
+
+            port_to_sync_write_position[key]->AddParam(_dxl->id, _sync_write_data);
 
             port_to_sync_write_torque[_dxl->port_name]->RemoveParam(_dxl->id);
             port_to_sync_write_velocity[_dxl->port_name]->RemoveParam(_dxl->id);
@@ -1213,7 +1240,9 @@ void RobotisController::SetCtrlModuleThread(std::string ctrl_module)
                             _sync_write_data[2] = DXL_LOBYTE(DXL_HIWORD(_pos_data));
                             _sync_write_data[3] = DXL_HIBYTE(DXL_HIWORD(_pos_data));
 
-                            port_to_sync_write_position[_dxl->port_name]->AddParam(_dxl->id, _sync_write_data);
+                            std::pair<std::string,std::string> key = std::make_pair(_dxl->port_name,_dxl->model_name);
+
+                            port_to_sync_write_position[key]->AddParam(_dxl->id, _sync_write_data);
 
                             port_to_sync_write_torque[_dxl->port_name]->RemoveParam(_dxl->id);
                             port_to_sync_write_velocity[_dxl->port_name]->RemoveParam(_dxl->id);
@@ -1230,7 +1259,10 @@ void RobotisController::SetCtrlModuleThread(std::string ctrl_module)
                             port_to_sync_write_velocity[_dxl->port_name]->AddParam(_dxl->id, _sync_write_data);
 
                             port_to_sync_write_torque[_dxl->port_name]->RemoveParam(_dxl->id);
-                            port_to_sync_write_position[_dxl->port_name]->RemoveParam(_dxl->id);
+
+                            std::pair<std::string,std::string> key = std::make_pair(_dxl->port_name,_dxl->model_name);
+
+                            port_to_sync_write_position[key]->RemoveParam(_dxl->id);
                         }
                         else if(_mode == CURRENT_CONTROL)
                         {
@@ -1244,7 +1276,10 @@ void RobotisController::SetCtrlModuleThread(std::string ctrl_module)
                             port_to_sync_write_torque[_dxl->port_name]->AddParam(_dxl->id, _sync_write_data);
 
                             port_to_sync_write_velocity[_dxl->port_name]->RemoveParam(_dxl->id);
-                            port_to_sync_write_position[_dxl->port_name]->RemoveParam(_dxl->id);
+
+                            std::pair<std::string,std::string> key = std::make_pair(_dxl->port_name,_dxl->model_name);
+
+                            port_to_sync_write_position[key]->RemoveParam(_dxl->id);
                         }
                     }
                 }

@@ -75,7 +75,7 @@ public:
 
     // TODO: TEMPORARY CODE !!
     std::map<std::string, GroupBulkRead *>  port_to_bulk_read;
-    std::map<std::string, GroupSyncWrite *> port_to_sync_write_position;
+    std::map<std::pair<std::string,std::string>, GroupSyncWrite *> port_to_sync_write_position; //std::pair<port,model>,group_sync_write
     std::map<std::string, GroupSyncWrite *> port_to_sync_write_velocity;
     std::map<std::string, GroupSyncWrite *> port_to_sync_write_torque;
 
