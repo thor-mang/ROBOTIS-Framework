@@ -177,31 +177,36 @@ bool RobotisController::Initialize(const std::string robot_file_path, const std:
     }
 
     // (for loop) check all dxls are connected.
-    for(std::map<std::string, Dynamixel*>::iterator _it = robot->dxls.begin(); _it != robot->dxls.end(); _it++)
+    for(std::map<std::string, Dynamixel*>::iterator _it = robot->dxls.begin(); _it != robot->dxls.end(); )
     {
         std::string _joint_name = _it->first;
         Dynamixel  *_dxl        = _it->second;
 
+        bool dxl_good = true;
         if(Ping(_joint_name) != 0)
         {
             usleep(10*1000);
             int resp = Ping(_joint_name);
-            if(resp != 0)
+            if(resp != 0) {
                 ROS_ERROR_STREAM("Joint " << _joint_name << " does not respond. Code: " << resp);
+                dxl_good = false;
+            }
         }
+        if (dxl_good) {
+          PacketHandler  *_dxl_pkt_handler = PacketHandler::GetPacketHandler(_dxl->protocol_version);
+          PortHandler    *_port            = robot->ports[_dxl->port_name];
 
-        // TODO do not create groupsyncwrite if ping failed
+          std::pair<std::string,std::string> key = std::make_pair(_dxl->port_name,_dxl->model_name);
 
-        PacketHandler  *_dxl_pkt_handler = PacketHandler::GetPacketHandler(_dxl->protocol_version);
-        PortHandler    *_port            = robot->ports[_dxl->port_name];
-
-        std::pair<std::string,std::string> key = std::make_pair(_dxl->port_name,_dxl->model_name);
-
-        if(port_to_sync_write_position.count(key) == 0) //If the key is not already in the map
-            port_to_sync_write_position[key] = new GroupSyncWrite(_port,
-                                                                  _dxl_pkt_handler,
-                                                                  _dxl->goal_position_item->address,
-                                                                  _dxl->goal_position_item->data_length);
+          if(port_to_sync_write_position.count(key) == 0) //If the key is not already in the map
+              port_to_sync_write_position[key] = new GroupSyncWrite(_port,
+                                                                    _dxl_pkt_handler,
+                                                                    _dxl->goal_position_item->address,
+                                                                    _dxl->goal_position_item->data_length);
+          _it++;
+        } else {
+          robot->dxls.erase(_it++);
+        }
     }
 
     InitDevice(init_file_path);
