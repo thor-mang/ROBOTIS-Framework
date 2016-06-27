@@ -134,13 +134,6 @@ bool RobotisController::Initialize(const std::string robot_file_path, const std:
             exit(-1);
         }
 
-        // We are iterating through ports, now we iterate through dxls in this port.
-        for(std::map<std::string, Dynamixel*>::iterator _it = robot->dxls.begin(); _it != robot->dxls.end(); _it++)
-        {
-
-
-        }
-
         // get the default device info of the port
         std::string _default_device_name = robot->port_default_device[_port_name];
         std::map<std::string, Dynamixel*>::iterator _dxl_it = robot->dxls.find(_default_device_name);
