@@ -334,27 +334,35 @@ bool RobotisController::initialize(const std::string robot_file_path, const std:
   }
 
   // (for loop) check all dxls are connected.
-  for (auto& it : robot_->dxls_)
+  for(std::map<std::string, Dynamixel*>::iterator it = robot_->dxls_.begin(); it != robot_->dxls_.end();)
   {
-    std::string joint_name  = it.first;
-    Dynamixel  *dxl         = it.second;
+    std::string joint_name  = it->first;
+    Dynamixel  *dxl         = it->second;
 
+    bool dxl_good = true;
     if (ping(joint_name) != 0)
     {
       usleep(10 * 1000);
       int resp = ping(joint_name);
       if(resp != 0)
+      {
         ROS_ERROR_STREAM("Joint " << joint_name << " does not respond. Code: " << resp);
+        dxl_good = false;
+      }
     }
+    if (dxl_good)
+    {
+      std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
 
-    // TODO do not create groupsyncwrite if ping failed
-   std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
-
-   if (port_to_sync_write_position_.count(key) == 0) // If the key is not already in the map
-       port_to_sync_write_position_[key] = new GroupSyncWrite(robot_->ports_[dxl->port_name_],
-                                                              PacketHandler::GetPacketHandler(dxl->protocol_version_),
-                                                              dxl->goal_position_item_->address_,
-                                                              dxl->goal_position_item_->data_length_);
+      if (port_to_sync_write_position_.count(key) == 0) // If the key is not already in the map
+          port_to_sync_write_position_[key] = new GroupSyncWrite(robot_->ports_[dxl->port_name_],
+                                                                 PacketHandler::GetPacketHandler(dxl->protocol_version_),
+                                                                 dxl->goal_position_item_->address_,
+                                                                 dxl->goal_position_item_->data_length_);
+      it++;
+    }
+    else
+      robot->dxls.erase(it++);
   }
 
   initializeDevice(init_file_path);
