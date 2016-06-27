@@ -137,19 +137,7 @@ bool RobotisController::Initialize(const std::string robot_file_path, const std:
         // We are iterating through ports, now we iterate through dxls in this port.
         for(std::map<std::string, Dynamixel*>::iterator _it = robot->dxls.begin(); _it != robot->dxls.end(); _it++)
         {
-            Dynamixel *_dxl = _it->second;
-            if(_dxl->port_name == _port_name){
 
-                PacketHandler  *_dxl_pkt_handler = PacketHandler::GetPacketHandler(_dxl->protocol_version);
-
-                std::pair<std::string,std::string> key = std::make_pair(_dxl->port_name,_dxl->model_name);
-
-                if(port_to_sync_write_position.count(key) == 0) //If the key is not already in the map
-                    port_to_sync_write_position[key] = new GroupSyncWrite(_port,
-                                                                          _dxl_pkt_handler,
-                                                                          _dxl->goal_position_item->address,
-                                                                          _dxl->goal_position_item->data_length);
-            }
 
         }
 
@@ -167,6 +155,8 @@ bool RobotisController::Initialize(const std::string robot_file_path, const std:
 //                                                                         _default_device->goal_position_item->address,
 //                                                                         _default_device->goal_position_item->data_length);
 
+
+            // TODO rewrite velocity and torque as done with position
             port_to_sync_write_velocity[_port_name] = new GroupSyncWrite(_port,
                                                                          _default_pkt_handler,
                                                                          _default_device->goal_velocity_item->address,
@@ -199,6 +189,19 @@ bool RobotisController::Initialize(const std::string robot_file_path, const std:
             if(resp != 0)
                 ROS_ERROR_STREAM("Joint " << _joint_name << " does not respond. Code: " << resp);
         }
+
+        // TODO do not create groupsyncwrite if ping failed
+
+        PacketHandler  *_dxl_pkt_handler = PacketHandler::GetPacketHandler(_dxl->protocol_version);
+        PortHandler    *_port            = robot->ports[_dxl->port_name];
+
+        std::pair<std::string,std::string> key = std::make_pair(_dxl->port_name,_dxl->model_name);
+
+        if(port_to_sync_write_position.count(key) == 0) //If the key is not already in the map
+            port_to_sync_write_position[key] = new GroupSyncWrite(_port,
+                                                                  _dxl_pkt_handler,
+                                                                  _dxl->goal_position_item->address,
+                                                                  _dxl->goal_position_item->data_length);
     }
 
     InitDevice(init_file_path);
