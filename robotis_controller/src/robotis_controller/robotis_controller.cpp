@@ -232,23 +232,6 @@ bool RobotisController::initialize(const std::string robot_file_path, const std:
     {
       ROS_ERROR("PORT [%s] SETUP ERROR! (baudrate: %d)", port_name.c_str(), port->getBaudRate());
       exit(-1);
-    }    
-
-    // We are iterating through ports, now we iterate through dxls in this port.
-    for (std::map<std::string, Dynamixel*>::iterator it = robot_->dxls_.begin(); it != robot_->dxls_.end(); it++)
-    {
-       Dynamixel *dxl = it->second;
-
-       if (dxl->port_name_ == port_name)
-       {
-         std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
-
-         if (port_to_sync_write_position_.count(key) == 0) // If the key is not already in the map
-             port_to_sync_write_position_[key] = new GroupSyncWrite(port,
-                                                                    PacketHandler::GetPacketHandler(dxl->protocol_version_),
-                                                                    dxl->goal_position_item_->address_,
-                                                                    dxl->goal_position_item_->data_length_);
-       }
     }
 
     // get the default device info of the port
@@ -363,6 +346,15 @@ bool RobotisController::initialize(const std::string robot_file_path, const std:
       if(resp != 0)
         ROS_ERROR_STREAM("Joint " << joint_name << " does not respond. Code: " << resp);
     }
+
+    // TODO do not create groupsyncwrite if ping failed
+   std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
+
+   if (port_to_sync_write_position_.count(key) == 0) // If the key is not already in the map
+       port_to_sync_write_position_[key] = new GroupSyncWrite(robot_->ports_[dxl->port_name_],
+                                                              PacketHandler::GetPacketHandler(dxl->protocol_version_),
+                                                              dxl->goal_position_item_->address_,
+                                                              dxl->goal_position_item_->data_length_);
   }
 
   initializeDevice(init_file_path);
