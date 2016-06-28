@@ -20,6 +20,7 @@
 #include "robotis_framework_common/MotionModule.h"
 #include "robotis_framework_common/SensorModule.h"
 
+#include <robotis_controller_msgs/RebootDevice.h>
 #include "robotis_controller_msgs/SyncWriteItem.h"
 #include "robotis_controller_msgs/JointCtrlModule.h"
 #include "robotis_controller_msgs/GetJointModule.h"
@@ -106,6 +107,7 @@ public:
     void    LoadOffset(const std::string path);
 
     /* ROS Topic Callback Functions */
+    void    RebootDeviceCallback(const robotis_controller_msgs::RebootDevice::ConstPtr &msg);
     void    SyncWriteItemCallback(const robotis_controller_msgs::SyncWriteItem::ConstPtr &msg);
     void    SetControllerModeCallback(const std_msgs::String::ConstPtr &msg);
     void    SetJointStatesCallback(const sensor_msgs::JointState::ConstPtr &msg);

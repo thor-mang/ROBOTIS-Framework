@@ -398,6 +398,7 @@ void RobotisController::QueueThread()
 
     /* subscriber */
     ros::Subscriber _sync_write_item_sub    = _ros_node.subscribe("robotis/sync_write_item", 10, &RobotisController::SyncWriteItemCallback, this);
+    ros::Subscriber _reboot_device          = _ros_node.subscribe("robotis/reboot_device", 10, &RobotisController::RebootDeviceCallback, this);
     ros::Subscriber _joint_ctrl_modules_sub = _ros_node.subscribe("robotis/set_joint_ctrl_modules", 10, &RobotisController::SetJointCtrlModuleCallback, this);
     ros::Subscriber _enable_ctrl_module_sub	= _ros_node.subscribe("robotis/enable_ctrl_module", 10, &RobotisController::SetCtrlModuleCallback, this);
     ros::Subscriber _control_mode_sub       = _ros_node.subscribe("robotis/set_control_mode", 10, &RobotisController::SetControllerModeCallback, this);
@@ -924,6 +925,20 @@ void RobotisController::AddSensorModule(SensorModule *module)
 void RobotisController::RemoveSensorModule(SensorModule *module)
 {
     sensor_modules_.remove(module);
+}
+
+void RobotisController::RebootDeviceCallback(const robotis_controller_msgs::RebootDevice::ConstPtr &msg) {
+  for (int i = 0; i < msg->joint_name.size(); i++) {
+    if (robot->dxls.count(msg->joint_name[i]) == 0) {
+      ROS_WARN_STREAM("Unknown joint: " << msg->joint_name[i]);
+      continue;
+    }
+    Dynamixel           *_dxl           = robot->dxls[msg->joint_name[i]];
+    PortHandler         *_port          = robot->ports[_dxl->port_name];
+    PacketHandler       *_packet_handler= PacketHandler::GetPacketHandler(_dxl->protocol_version);
+    _packet_handler->Reboot(_port, _dxl->id);
+    ROS_WARN_STREAM("Rebooting joint ID " << _dxl->id << ": " << msg->joint_name[i] << ".");
+  }
 }
 
 void RobotisController::SyncWriteItemCallback(const robotis_controller_msgs::SyncWriteItem::ConstPtr &msg)
