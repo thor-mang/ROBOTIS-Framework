@@ -11,6 +11,11 @@ find_package(catkin REQUIRED COMPONENTS
   robotis_framework_common
   cmake_modules
   dynamixel_sdk
+  dynamic_reconfigure
+)
+
+generate_dynamic_reconfigure_options(
+  cfg/Offsets.cfg
 )
 
 ###################################
@@ -25,7 +30,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES robotis_controller
-  CATKIN_DEPENDS roscpp roslib sensor_msgs std_msgs
+  CATKIN_DEPENDS roscpp roslib sensor_msgs std_msgs dynamic_reconfigure
 #  DEPENDS system_lib
 )
 
@@ -45,6 +50,8 @@ include_directories(
 add_library(robotis_controller
   src/robotis_controller/RobotisController.cpp
 )
+
+add_dependencies(robotis_controller ${robotis_controller_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(robotis_controller
