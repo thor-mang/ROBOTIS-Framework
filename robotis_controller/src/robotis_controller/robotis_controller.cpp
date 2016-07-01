@@ -670,7 +670,11 @@ void RobotisController::msgQueueThread()
 
   /* service */
   ros::ServiceServer joint_module_server = ros_node.advertiseService("robotis/get_present_joint_ctrl_modules",
-                                                        &RobotisController::getCtrlModuleCallback, this);
+                                                                     &RobotisController::getCtrlModuleCallback, this);
+  ros::ServiceServer set_joint_ctrl_module_server = ros_node.advertiseService("robotis/set_joint_ctrl_modules",
+                                                                              &RobotisController::setJointCtrlModuleServiceCallback, this);
+  ros::ServiceServer set_ctrl_module_server = ros_node.advertiseService("robotis/enable_ctrl_module",
+                                                                        &RobotisController::setCtrlModuleServiceCallback, this);
 
   /* dynamic reconfigure */
   ros::NodeHandle joint_offsets_node("joint_offsets");
@@ -1652,6 +1656,14 @@ void RobotisController::setCtrlModuleCallback(const std_msgs::String::ConstPtr &
   set_module_thread_ = boost::thread(boost::bind(&RobotisController::setCtrlModuleThread, this, _module_name_to_set));
 }
 
+bool RobotisController::setCtrlModuleServiceCallback(robotis_controller_msgs::SetCtrlModuleRequest &req, robotis_controller_msgs::SetCtrlModuleResponse &/*res*/)
+{
+  std_msgs::String::Ptr msg(new std_msgs::String());
+  msg->data = req.module_name;
+  setCtrlModuleCallback(msg);
+  return true;
+}
+
 void RobotisController::setJointCtrlModuleCallback(const robotis_controller_msgs::JointCtrlModule::ConstPtr &msg)
 {
   if (msg->joint_name.size() != msg->module_name.size())
@@ -1719,6 +1731,14 @@ void RobotisController::setJointCtrlModuleCallback(const robotis_controller_msgs
 
   if (current_module_msg.joint_name.size() == current_module_msg.module_name.size())
     current_module_pub_.publish(current_module_msg);
+}
+
+bool RobotisController::setJointCtrlModuleServiceCallback(robotis_controller_msgs::SetJointCtrlModuleRequest &req, robotis_controller_msgs::SetJointCtrlModuleResponse &/*res*/)
+{
+  robotis_controller_msgs::JointCtrlModule::Ptr msg(new robotis_controller_msgs::JointCtrlModule());
+  *msg = req.joint_ctrl_modules;
+  setJointCtrlModuleCallback(msg);
+  return true;
 }
 
 bool RobotisController::getCtrlModuleCallback(robotis_controller_msgs::GetJointModule::Request &req,
