@@ -672,6 +672,19 @@ void RobotisController::msgQueueThread()
   ros::ServiceServer joint_module_server = ros_node.advertiseService("robotis/get_present_joint_ctrl_modules",
                                                         &RobotisController::getCtrlModuleCallback, this);
 
+  /* dynamic reconfigure */
+  ros::NodeHandle joint_offsets_node("joint_offsets");
+  joint_offsets_node.setCallbackQueue(&callback_queue);
+  boost::recursive_mutex config_mutex;
+  dynamic_reconfigure::Server<robotis_controller::OffsetsConfig> server(config_mutex, joint_offsets_node);
+
+  // Load current config to dynamic reconfigure server
+  loadOffsetsToServer(server);
+
+  // Set callback
+  dynamic_reconfigure::Server<robotis_controller::OffsetsConfig>::CallbackType callback_f_ = boost::bind(&RobotisController::offsetsCallback, this, _1, _2);
+  server.setCallback(callback_f_);
+
   ros::WallDuration duration(CONTROL_CYCLE_MSEC/1000.0);
   while (ros_node.ok())
     callback_queue.callAvailable(duration);
@@ -854,7 +867,7 @@ bool RobotisController::isTimerRunning()
   return this->is_timer_running_;
 }
 
-void RobotisController::loadOffset(const std::string path)
+void RobotisController::loadOffsets(const std::string path)
 {
   YAML::Node doc;
   try
@@ -862,7 +875,7 @@ void RobotisController::loadOffset(const std::string path)
     doc = YAML::LoadFile(path.c_str());
   } catch (const std::exception& e)
   {
-    ROS_ERROR("Fail to load offset yaml.");
+    ROS_ERROR("Failed to load offset yaml.");
     return;
   }
 
@@ -879,6 +892,78 @@ void RobotisController::loadOffset(const std::string path)
     auto dxl_it = robot_->dxls_.find(joint_name);
     if (dxl_it != robot_->dxls_.end())
       dxl_it->second->dxl_state_->position_offset_ = offset;
+  }
+}
+
+void RobotisController::saveOffsets(std::string path)
+{
+  YAML::Node offset_node;
+
+  for(std::map<std::string, Dynamixel *>::iterator dxl_it = robot_->dxls_.begin(); dxl_it != robot_->dxls_.end(); dxl_it++)
+  {
+      std::string joint_name = dxl_it->first;
+      double      offset     = dxl_it->second->dxl_state->position_offset;
+      YAML::Node joint_offset_node;
+      joint_offset_node[joint_name] = offset;
+      offset_node.push_back(joint_offset_node);
+  }
+
+  std::ofstream fout(path.c_str());
+  fout << offset_node;
+}
+
+void RobotisController::loadOffsetsToServer(dynamic_reconfigure::Server<robotis_controller::OffsetsConfig>& server)
+{
+  robotis_controller::OffsetsConfig config;
+  for(std::map<std::string, Dynamixel *>::iterator dxl_it = robot_->dxls_.begin(); dxl_it != robot_->dxls_.end(); dxl_it++)
+  {
+      std::string joint_name = dxl_it->first;
+      double      offset     = dxl_it->second->dxl_state->position_offset;
+
+      typedef boost::shared_ptr<const robotis_controller::OffsetsConfig::ParamDescription<double> > ParamDescriptionConstPtr;
+
+      std::vector<robotis_controller::OffsetsConfig::AbstractParamDescriptionConstPtr> config_list = config.__getParamDescriptions__();
+      for (unsigned int i = 0; i < config_list.size(); i++)
+      {
+        // This interface is not documented but it is the only way to iterate the message dynamically. Use with caution.
+        robotis_controller::OffsetsConfig::AbstractParamDescriptionConstPtr desc_ptr = config_list[i];
+        if (desc_ptr->name == joint_name)
+        {
+          ParamDescriptionConstPtr param_desc_ptr = boost::dynamic_pointer_cast<const robotis_controller::OffsetsConfig::ParamDescription<double> >(desc_ptr);
+          config.*param_desc_ptr->field = offset;
+        }
+      }
+  }
+  server.updateConfig(config);
+}
+
+void RobotisController::offsetsCallback(robotis_controller::OffsetsConfig &config, uint32_t level)
+{
+  ROS_INFO("Received new offsets");
+  std::vector<robotis_controller::OffsetsConfig::AbstractParamDescriptionConstPtr> config_list = config.__getParamDescriptions__();
+
+  for (unsigned int i = 0; i < config_list.size(); i++)
+  {
+    // This interface is not documented but it is the only way to iterate the message dynamically. Use with caution.
+    const robotis_controller::OffsetsConfig::AbstractParamDescriptionConstPtr& desc_ptr = config_list[i];
+
+    std::string joint_name = desc_ptr->name;
+    if (joint_name == "save_config")
+      continue;
+
+    boost::any val;
+    desc_ptr->getValue(config, val);
+    double offset = boost::any_cast<double>(val);
+
+    std::map<std::string, Dynamixel*>::iterator dxl_it = robot_->dxls_.find(joint_name);
+    if(dxl_it != robot->dxls.end())
+        dxl_it->second->dxl_state->position_offset = offset;
+  }
+
+  if (config.save_config)
+  {
+    ROS_INFO_STREAM("Saving config to " << offset_config_path_);
+    SaveOffsets(offset_config_path_);
   }
 }
 

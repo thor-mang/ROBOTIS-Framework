@@ -57,6 +57,11 @@
 #include "dynamixel_sdk/group_bulk_read.h"
 #include "dynamixel_sdk/group_sync_write.h"
 
+// dynamic reconfigure
+#include <dynamic_reconfigure/server.h>
+#include <robotis_controller/OffsetsConfig.h>
+#include <fstream>
+
 namespace robotis_framework
 {
 
@@ -93,6 +98,9 @@ private:
   bool isTimerStopped();
   void initializeSyncWrite();
 
+  void loadOffsetsToServer(dynamic_reconfigure::Server<robotis_controller::OffsetsConfig> &server);
+  void offsetsCallback(robotis_controller::OffsetsConfig &config, uint32_t level);
+
 public:
   static const int  CONTROL_CYCLE_MSEC  = 8;    // 8 msec
 
@@ -101,6 +109,8 @@ public:
 
   bool              gazebo_mode_;
   std::string       gazebo_robot_name_;
+
+  std::string       offset_config_path_;
 
   /* bulk read */
   std::map<std::string, dynamixel::GroupBulkRead *>   port_to_bulk_read_;
@@ -142,7 +152,8 @@ public:
   void    stopTimer();
   bool    isTimerRunning();
 
-  void    loadOffset(const std::string path);
+  void    loadOffsets(const std::string path);
+  void    saveOffsets(const std::string path);
 
   /* ROS Topic Callback Functions */
   void    rebootDeviceCallback(const robotis_controller_msgs::RebootDevice::ConstPtr &msg);
