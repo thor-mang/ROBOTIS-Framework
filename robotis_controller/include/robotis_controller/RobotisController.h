@@ -24,6 +24,8 @@
 #include "robotis_controller_msgs/SyncWriteItem.h"
 #include "robotis_controller_msgs/JointCtrlModule.h"
 #include "robotis_controller_msgs/GetJointModule.h"
+#include "robotis_controller_msgs/SetCtrlModule.h"
+#include "robotis_controller_msgs/SetJointCtrlModule.h"
 
 // TODO: TEMPORARY CODE !!
 #include "dynamixel_sdk/GroupBulkRead.h"
@@ -112,7 +114,9 @@ public:
     void    SetControllerModeCallback(const std_msgs::String::ConstPtr &msg);
     void    SetJointStatesCallback(const sensor_msgs::JointState::ConstPtr &msg);
     void    SetJointCtrlModuleCallback(const robotis_controller_msgs::JointCtrlModule::ConstPtr &msg);
+    bool    SetJointCtrlModuleServiceCallback(robotis_controller_msgs::SetJointCtrlModuleRequest &req, robotis_controller_msgs::SetJointCtrlModuleResponse &res);
     void    SetCtrlModuleCallback(const std_msgs::String::ConstPtr &msg);
+    bool    SetCtrlModuleServiceCallback(robotis_controller_msgs::SetCtrlModuleRequest &req, robotis_controller_msgs::SetCtrlModuleResponse &res);
     bool    GetCtrlModuleCallback(robotis_controller_msgs::GetJointModule::Request &req, robotis_controller_msgs::GetJointModule::Response &res);
 
     void    GazeboJointStatesCallback(const sensor_msgs::JointState::ConstPtr &msg);

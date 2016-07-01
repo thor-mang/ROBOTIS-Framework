@@ -420,6 +420,8 @@ void RobotisController::QueueThread()
 
     /* service */
     ros::ServiceServer _joint_module_server = _ros_node.advertiseService("robotis/get_present_joint_ctrl_modules", &RobotisController::GetCtrlModuleCallback, this);
+    ros::ServiceServer _set_joint_ctrl_module_server = _ros_node.advertiseService("robotis/set_joint_ctrl_modules", &RobotisController::SetJointCtrlModuleServiceCallback, this);
+    ros::ServiceServer _set_ctrl_module_server = _ros_node.advertiseService("robotis/enable_ctrl_module", &RobotisController::SetCtrlModuleServiceCallback, this);
 
     ros::WallDuration duration(CONTROL_CYCLE_MSEC/1000.0);
     while(_ros_node.ok())
@@ -505,7 +507,7 @@ void RobotisController::StartTimer()
               ROS_ERROR("Creating main control thread failed!");
               exit(-1);
             }
-        } 
+        }
     }
 
     this->is_timer_running_ = true;
@@ -1044,6 +1046,15 @@ void RobotisController::SetCtrlModuleCallback(const std_msgs::String::ConstPtr &
     set_module_thread_ = boost::thread(boost::bind(&RobotisController::SetCtrlModuleThread, this, _module_name_to_set));
 }
 
+
+bool RobotisController::SetCtrlModuleServiceCallback(robotis_controller_msgs::SetCtrlModuleRequest &req, robotis_controller_msgs::SetCtrlModuleResponse &/*res*/)
+{
+  std_msgs::String::Ptr msg(new std_msgs::String());
+  msg->data = req.module_name;
+  SetCtrlModuleCallback(msg);
+  return true;
+}
+
 void RobotisController::SetJointCtrlModuleCallback(const robotis_controller_msgs::JointCtrlModule::ConstPtr &msg)
 {
     if(msg->joint_name.size() != msg->module_name.size())
@@ -1111,6 +1122,14 @@ void RobotisController::SetJointCtrlModuleCallback(const robotis_controller_msgs
 
     if(_current_module_msg.joint_name.size() == _current_module_msg.module_name.size())
         current_module_pub.publish(_current_module_msg);
+}
+
+bool RobotisController::SetJointCtrlModuleServiceCallback(robotis_controller_msgs::SetJointCtrlModuleRequest &req, robotis_controller_msgs::SetJointCtrlModuleResponse &/*res*/)
+{
+  robotis_controller_msgs::JointCtrlModule::Ptr msg(new robotis_controller_msgs::JointCtrlModule());
+  *msg = req.joint_ctrl_modules;
+  SetJointCtrlModuleCallback(msg);
+  return true;
 }
 
 bool RobotisController::GetCtrlModuleCallback(robotis_controller_msgs::GetJointModule::Request &req, robotis_controller_msgs::GetJointModule::Response &res)
@@ -1207,7 +1226,7 @@ void RobotisController::SetCtrlModuleThread(std::string ctrl_module)
         {
             Dynamixel *_dxl = _d_it->second;
             _dxl->ctrl_module_name = "none";
-            
+
             if (gazebo_mode)
               continue;
 
@@ -1242,7 +1261,7 @@ void RobotisController::SetCtrlModuleThread(std::string ctrl_module)
                     {
                         Dynamixel *_dxl = _d_it->second;
                         _dxl->ctrl_module_name = ctrl_module;
-                        
+
                         if (gazebo_mode)
                           continue;
 
@@ -1340,7 +1359,7 @@ void RobotisController::SetCtrlModuleThread(std::string ctrl_module)
 void RobotisController::GazeboJointStatesCallback(const sensor_msgs::JointState::ConstPtr &msg)
 {
     queue_mutex_.lock();
-  
+
     for(unsigned int _i = 0; _i < msg->name.size(); _i++)
     {
         std::map<std::string, Dynamixel*>::iterator _d_it = robot->dxls.find((std::string)msg->name[_i]);
@@ -1358,7 +1377,7 @@ void RobotisController::GazeboJointStatesCallback(const sensor_msgs::JointState:
             _it->second->dxl_state->goal_position = _it->second->dxl_state->present_position;
         init_pose_loaded_ = true;
     }
-    
+
     queue_mutex_.unlock();
 }
 
