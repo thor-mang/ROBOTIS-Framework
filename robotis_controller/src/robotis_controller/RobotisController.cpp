@@ -409,6 +409,19 @@ void RobotisController::QueueThread()
     present_joint_state_pub     = _ros_node.advertise<sensor_msgs::JointState>("robotis/joints/present_joint_states", 10);
     current_module_pub          = _ros_node.advertise<robotis_controller_msgs::JointCtrlModule>("robotis/present_joint_ctrl_modules", 10);
 
+    /* dynamic reconfigure */
+    ros::NodeHandle joint_offsets_node("joint_offsets");
+    joint_offsets_node.setCallbackQueue(&_callback_queue);
+    boost::recursive_mutex config_mutex;
+    dynamic_reconfigure::Server<robotis_controller::OffsetsConfig> server(config_mutex, joint_offsets_node);
+
+    // Load current config to dynamic reconfigure server
+    LoadOffsetsToServer(server);
+
+    // Set callback
+    dynamic_reconfigure::Server<robotis_controller::OffsetsConfig>::CallbackType callback_f_ = boost::bind(&RobotisController::OffsetsCallback, this, _1, _2);
+    server.setCallback(callback_f_);
+
     ros::Subscriber _gazebo_joint_states_sub;
     if(gazebo_mode == true)
     {
@@ -427,6 +440,74 @@ void RobotisController::QueueThread()
     while(_ros_node.ok())
       _callback_queue.callAvailable(duration);
 }
+
+void RobotisController::LoadOffsetsToServer(dynamic_reconfigure::Server<robotis_controller::OffsetsConfig>& server) {
+  robotis_controller::OffsetsConfig config;
+  for(std::map<std::string, Dynamixel *>::iterator dxl_it = robot->dxls.begin(); dxl_it != robot->dxls.end(); dxl_it++)
+  {
+      std::string _joint_name = dxl_it->first;
+      double      _offset     = dxl_it->second->dxl_state->position_offset;
+
+      typedef boost::shared_ptr<const robotis_controller::OffsetsConfig::ParamDescription<double> > ParamDescriptionConstPtr;
+
+      std::vector<robotis_controller::OffsetsConfig::AbstractParamDescriptionConstPtr> config_list = config.__getParamDescriptions__();
+      for (unsigned int i = 0; i < config_list.size(); i++) {
+        // This interface is not documented but it is the only way to iterate the message dynamically. Use with caution.
+        robotis_controller::OffsetsConfig::AbstractParamDescriptionConstPtr desc_ptr = config_list[i];
+        if (desc_ptr->name == _joint_name) {
+          ParamDescriptionConstPtr param_desc_ptr = boost::dynamic_pointer_cast<const robotis_controller::OffsetsConfig::ParamDescription<double> >(desc_ptr);
+          config.*param_desc_ptr->field = _offset;
+        }
+      }
+
+
+  }
+  server.updateConfig(config);
+}
+
+
+void RobotisController::OffsetsCallback(robotis_controller::OffsetsConfig &config, uint32_t level) {
+  ROS_INFO("Received new offsets");
+  std::vector<robotis_controller::OffsetsConfig::AbstractParamDescriptionConstPtr> config_list = config.__getParamDescriptions__();
+
+  for (unsigned int i = 0; i < config_list.size(); i++) {
+    // This interface is not documented but it is the only way to iterate the message dynamically. Use with caution.
+    const robotis_controller::OffsetsConfig::AbstractParamDescriptionConstPtr& desc_ptr = config_list[i];
+    std::string joint_name = desc_ptr->name;
+    if (joint_name == "save_config") {
+      continue;
+    }
+    boost::any val;
+    desc_ptr->getValue(config, val);
+    double offset = boost::any_cast<double>(val);
+
+    std::map<std::string, Dynamixel*>::iterator _dxl_it = robot->dxls.find(joint_name);
+    if(_dxl_it != robot->dxls.end())
+        _dxl_it->second->dxl_state->position_offset = offset;
+  }
+
+  if (config.save_config) {
+    ROS_INFO_STREAM("Saving config to " << offset_config_path_);
+    SaveOffsets(offset_config_path_);
+  }
+}
+
+void RobotisController::SaveOffsets(std::string path) {
+  YAML::Node _offset_node;
+
+  for(std::map<std::string, Dynamixel *>::iterator dxl_it = robot->dxls.begin(); dxl_it != robot->dxls.end(); dxl_it++)
+  {
+      std::string _joint_name = dxl_it->first;
+      double      _offset     = dxl_it->second->dxl_state->position_offset;
+      YAML::Node joint_offset_node;
+      joint_offset_node[_joint_name] = _offset;
+      _offset_node.push_back(joint_offset_node);
+  }
+
+  std::ofstream fout(path.c_str());
+  fout << _offset_node;
+}
+
 
 void *RobotisController::ThreadProc(void *param)
 {
@@ -560,7 +641,7 @@ void RobotisController::LoadOffset(const std::string path)
     try{
         _doc = YAML::LoadFile(path.c_str());
     } catch(const std::exception& e) {
-        ROS_ERROR("Fail to load offset yaml.");
+        ROS_ERROR("Failed to load offset yaml.");
         return;
     }
 

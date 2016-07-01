@@ -31,6 +31,11 @@
 #include "dynamixel_sdk/GroupBulkRead.h"
 #include "dynamixel_sdk/GroupSyncWrite.h"
 
+// dynamic reconfigure
+#include <dynamic_reconfigure/server.h>
+#include <robotis_controller/OffsetsConfig.h>
+#include <fstream>
+
 namespace ROBOTIS
 {
 
@@ -67,7 +72,12 @@ private:
     bool CheckTimerStop();
     void InitSyncWrite();
 
+    void LoadOffsetsToServer(dynamic_reconfigure::Server<robotis_controller::OffsetsConfig> &server);
+    void OffsetsCallback(robotis_controller::OffsetsConfig &config, uint32_t level);
+
 public:
+    std::string offset_config_path_;
+
     static const int            CONTROL_CYCLE_MSEC  = 8;    // 8 msec
 
     bool                        DEBUG_PRINT;
@@ -107,6 +117,7 @@ public:
     bool    IsTimerRunning();
 
     void    LoadOffset(const std::string path);
+    void    SaveOffsets(std::string path);
 
     /* ROS Topic Callback Functions */
     void    RebootDeviceCallback(const robotis_controller_msgs::RebootDevice::ConstPtr &msg);
