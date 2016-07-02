@@ -903,9 +903,7 @@ void RobotisController::saveOffsets(std::string path)
   {
       std::string joint_name = dxl_it->first;
       double      offset     = dxl_it->second->dxl_state->position_offset;
-      YAML::Node joint_offset_node;
-      joint_offset_node[joint_name] = offset;
-      offset_node.push_back(joint_offset_node);
+      offset_node["offset"][joint_name] = offset;
   }
 
   std::ofstream fout(path.c_str());
