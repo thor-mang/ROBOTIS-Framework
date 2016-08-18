@@ -355,14 +355,14 @@ bool RobotisController::initialize(const std::string robot_file_path, const std:
       std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
 
       if (port_to_sync_write_position_.count(key) == 0) // If the key is not already in the map
-          port_to_sync_write_position_[key] = new GroupSyncWrite(robot_->ports_[dxl->port_name_],
-                                                                 PacketHandler::GetPacketHandler(dxl->protocol_version_),
+          port_to_sync_write_position_[key] = new dynamixel::GroupSyncWrite(robot_->ports_[dxl->port_name_],
+                                                                 dynamixel::PacketHandler::getPacketHandler(dxl->protocol_version_),
                                                                  dxl->goal_position_item_->address_,
                                                                  dxl->goal_position_item_->data_length_);
       it++;
     }
     else
-      robot->dxls.erase(it++);
+      robot_->dxls_.erase(it++);
   }
 
   initializeDevice(init_file_path);
@@ -906,7 +906,7 @@ void RobotisController::saveOffsets(std::string path)
   for(std::map<std::string, Dynamixel *>::iterator dxl_it = robot_->dxls_.begin(); dxl_it != robot_->dxls_.end(); dxl_it++)
   {
       std::string joint_name = dxl_it->first;
-      double      offset     = dxl_it->second->dxl_state->position_offset;
+      double      offset     = dxl_it->second->dxl_state_->position_offset_;
       offset_node["offset"][joint_name] = offset;
   }
 
@@ -920,7 +920,7 @@ void RobotisController::loadOffsetsToServer(dynamic_reconfigure::Server<robotis_
   for(std::map<std::string, Dynamixel *>::iterator dxl_it = robot_->dxls_.begin(); dxl_it != robot_->dxls_.end(); dxl_it++)
   {
       std::string joint_name = dxl_it->first;
-      double      offset     = dxl_it->second->dxl_state->position_offset;
+      double      offset     = dxl_it->second->dxl_state_->position_offset_;
 
       typedef boost::shared_ptr<const robotis_controller::OffsetsConfig::ParamDescription<double> > ParamDescriptionConstPtr;
 
@@ -958,14 +958,14 @@ void RobotisController::offsetsCallback(robotis_controller::OffsetsConfig &confi
     double offset = boost::any_cast<double>(val);
 
     std::map<std::string, Dynamixel*>::iterator dxl_it = robot_->dxls_.find(joint_name);
-    if(dxl_it != robot->dxls.end())
-        dxl_it->second->dxl_state->position_offset = offset;
+    if(dxl_it != robot_->dxls_.end())
+        dxl_it->second->dxl_state_->position_offset_ = offset;
   }
 
   if (config.save_config)
   {
     ROS_INFO_STREAM("Saving config to " << offset_config_path_);
-    SaveOffsets(offset_config_path_);
+    saveOffsets(offset_config_path_);
   }
 }
 
@@ -1160,11 +1160,9 @@ void RobotisController::process()
                          dxl_state->goal_position_, dxl_state->position_offset_, pos_data);
                 }
 
-                if (port_to_sync_write_position_[dxl->port_name_] != NULL)
-                {
-                  std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
-                  port_to_sync_write_position_[key]->ChangeParam(dxl->id_, sync_write_data);
-                }
+                std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
+                if (port_to_sync_write_position_[key] != NULL)
+                  port_to_sync_write_position_[key]->changeParam(dxl->id_, sync_write_data);
 
                 // if position p gain value is changed -> sync write
                 if (dxl_state->position_p_gain_ != result_state->position_p_gain_)
@@ -1521,10 +1519,10 @@ void RobotisController::rebootDeviceCallback(const robotis_controller_msgs::Rebo
       ROS_WARN_STREAM("Unknown joint: " << msg->joint_name[i]);
       continue;
     }
-    Dynamixel           *dxl            = robot_->dxls_[msg->joint_name[i]];
-    PortHandler         *port           = robot_->ports_[dxl->port_name_];
-    PacketHandler       *packet_handler = PacketHandler::GetPacketHandler(dxl->protocol_version_);
-    packet_handler->Reboot(port, dxl->id_);
+    Dynamixel                   *dxl            = robot_->dxls_[msg->joint_name[i]];
+    dynamixel::PortHandler      *port           = robot_->ports_[dxl->port_name_];
+    dynamixel::PacketHandler    *packet_handler = dynamixel::PacketHandler::getPacketHandler(dxl->protocol_version_);
+    packet_handler->reboot(port, dxl->id_);
     ROS_WARN_STREAM("Rebooting joint ID " << dxl->id_ << ": " << msg->joint_name[i] << ".");
   }
 }
@@ -1533,8 +1531,8 @@ void RobotisController::syncWriteItemCallback(const robotis_controller_msgs::Syn
 {
   for (int i = 0; i < msg->joint_name.size(); i++)
   {
-    if (robot->dxls.count(msg->joint_name[_i]) == 0) {
-      ROS_WARN_STREAM("Unknown joint: " << msg->joint_name[_i]);
+    if (robot_->dxls_.count(msg->joint_name[i]) == 0) {
+      ROS_WARN_STREAM("Unknown joint: " << msg->joint_name[i]);
       continue;
     }
 
@@ -1639,11 +1637,9 @@ void RobotisController::setJointStatesCallback(const sensor_msgs::JointState::Co
     sync_write_data[2] = DXL_LOBYTE(DXL_HIWORD(pos));
     sync_write_data[3] = DXL_HIBYTE(DXL_HIWORD(pos));
 
-    if (port_to_sync_write_position_[dxl->port_name_] != NULL)
-    {
-      std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
+    std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
+    if (port_to_sync_write_position_[key] != NULL)
       port_to_sync_write_position_[key]->addParam(dxl->id_, sync_write_data);
-    }
   }
 
   queue_mutex_.unlock();
@@ -1853,11 +1849,9 @@ void RobotisController::setCtrlModuleThread(std::string ctrl_module)
       sync_write_data[2] = DXL_LOBYTE(DXL_HIWORD(pos_data));
       sync_write_data[3] = DXL_HIBYTE(DXL_HIWORD(pos_data));
 
-      if (port_to_sync_write_position_[dxl->port_name_] != NULL)
-      {
-        std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
+      std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
+      if (port_to_sync_write_position_[key] != NULL)
         port_to_sync_write_position_[key]->addParam(dxl->id_, sync_write_data);
-      }
 
       if (port_to_sync_write_current_[dxl->port_name_] != NULL)
         port_to_sync_write_current_[dxl->port_name_]->removeParam(dxl->id_);
@@ -1894,11 +1888,9 @@ void RobotisController::setCtrlModuleThread(std::string ctrl_module)
               sync_write_data[2] = DXL_LOBYTE(DXL_HIWORD(pos_data));
               sync_write_data[3] = DXL_HIBYTE(DXL_HIWORD(pos_data));
 
-              if (port_to_sync_write_position_[dxl->port_name_] != NULL)
-              {
-                std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
+              std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
+              if (port_to_sync_write_position_[key] != NULL)
                 port_to_sync_write_position_[key]->addParam(dxl->id_, sync_write_data);
-              }
 
               if (port_to_sync_write_current_[dxl->port_name_] != NULL)
                 port_to_sync_write_current_[dxl->port_name_]->removeParam(dxl->id_);
@@ -1918,12 +1910,10 @@ void RobotisController::setCtrlModuleThread(std::string ctrl_module)
                 port_to_sync_write_velocity_[dxl->port_name_]->addParam(dxl->id_, sync_write_data);
 
               if (port_to_sync_write_current_[dxl->port_name_] != NULL)
-                port_to_sync_write_current_[dxl->port_name_]->removeParam(dxl->id_);
-              if (port_to_sync_write_position_[dxl->port_name_] != NULL)
-              {
-                std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
+                port_to_sync_write_current_[dxl->port_name_]->removeParam(dxl->id_);              
+              std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
+              if (port_to_sync_write_position_[key] != NULL)
                 port_to_sync_write_position_[key]->removeParam(dxl->id_);
-              }
             }
             else if (mode == TorqueControl)
             {
@@ -1938,12 +1928,10 @@ void RobotisController::setCtrlModuleThread(std::string ctrl_module)
                 port_to_sync_write_current_[dxl->port_name_]->addParam(dxl->id_, sync_write_data);
 
               if (port_to_sync_write_velocity_[dxl->port_name_] != NULL)
-                port_to_sync_write_velocity_[dxl->port_name_]->removeParam(dxl->id_);
-              if (port_to_sync_write_position_[dxl->port_name_] != NULL)
-              {
-                std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
+                port_to_sync_write_velocity_[dxl->port_name_]->removeParam(dxl->id_);              
+              std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
+              if (port_to_sync_write_position_[key] != NULL)
                 port_to_sync_write_position_[key]->removeParam(dxl->id_);
-              }
             }
           }
         }
