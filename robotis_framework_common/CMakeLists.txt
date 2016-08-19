@@ -1,56 +1,58 @@
+################################################################################
+# CMake
+################################################################################
 cmake_minimum_required(VERSION 2.8.3)
 project(robotis_framework_common)
 
+################################################################################
+# Packages
+################################################################################
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  robotis_device
 )
 
-###################################
-## catkin specific configuration ##
-###################################
-## The catkin_package macro generates cmake config files for your package
-## Declare things to be passed to dependent projects
-## INCLUDE_DIRS: uncomment this if you package contains header files
-## LIBRARIES: libraries you create in this project that dependent projects also need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also need
+################################################################################
+# Declare ROS messages, services and actions
+################################################################################
+
+################################################################################
+# Declare ROS dynamic reconfigure parameters
+################################################################################
+
+################################################################################
+# Catkin specific configuration
+################################################################################
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES robotis_framework_common
-#  CATKIN_DEPENDS roscpp
-#  DEPENDS system_lib
+  LIBRARIES robotis_framework_common
+  CATKIN_DEPENDS roscpp robotis_device
 )
 
-###########
-## Build ##
-###########
-
-## Specify additional locations of header files
-## Your package locations should be listed before other locations
-# include_directories(include)
+################################################################################
+# Build
+################################################################################
 include_directories(
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
-## Declare a C++ library
-# add_library(robotis_framework_common
-#   src/${PROJECT_NAME}/robotis_framework_common.cpp
-# )
+set(HEADERS
+  include/${PROJECT_NAME}/motion_module.h
+  include/${PROJECT_NAME}/sensor_module.h
+  include/${PROJECT_NAME}/singleton.h
+)
 
-## Add cmake target dependencies of the library
-## as an example, code may need to be generated before libraries
-## either from message generation or dynamic reconfigure
-# add_dependencies(robotis_framework_common ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_library(${PROJECT_NAME} ${HEADERS})
+set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-## Declare a C++ executable
-# add_executable(robotis_framework_common_node src/robotis_framework_common_node.cpp)
+################################################################################
+# Install
+################################################################################
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+)
 
-## Add cmake target dependencies of the executable
-## same as for the library above
-# add_dependencies(robotis_framework_common_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-## Specify libraries to link a library or executable target against
-# target_link_libraries(robotis_framework_common_node
-#   ${catkin_LIBRARIES}
-# )
-
+################################################################################
+# Test
+################################################################################
