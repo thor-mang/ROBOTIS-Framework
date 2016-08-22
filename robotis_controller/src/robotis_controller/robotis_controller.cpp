@@ -1159,11 +1159,11 @@ void RobotisController::process()
                 sync_write_data[2] = DXL_LOBYTE(DXL_HIWORD(pos_data));
                 sync_write_data[3] = DXL_HIBYTE(DXL_HIWORD(pos_data));
 
-                if (abs(pos_data) > 151800)
-                {
-                  printf("goal_pos : %f |  position_offset : %f | pos_data : %d\n",
-                         dxl_state->goal_position_, dxl_state->position_offset_, pos_data);
-                }
+//                if (abs(pos_data) > 151800)
+//                {
+//                  printf("goal_pos : %f |  position_offset : %f | pos_data : %d\n",
+//                         dxl_state->goal_position_, dxl_state->position_offset_, pos_data);
+//                }
 
                 std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
                 if (port_to_sync_write_position_[key] != NULL)
@@ -1302,6 +1302,16 @@ void RobotisController::process()
     // SyncWrite
     if (gazebo_mode_ == false && do_sync_write)
     {
+      if (direct_sync_write_.size() > 0)
+      {
+        for (int i = 0; i < direct_sync_write_.size(); i++)
+        {
+          direct_sync_write_[i]->txPacket();
+          direct_sync_write_[i]->clearParam();
+        }
+        direct_sync_write_.clear();
+      }
+
       if (port_to_sync_write_position_p_gain_.size() > 0)
       {
         for (auto& it : port_to_sync_write_position_p_gain_)
@@ -1557,7 +1567,7 @@ void RobotisController::syncWriteItemCallback(const robotis_controller_msgs::Syn
       }
       else
       {
-        // could not find the device
+        ROS_WARN("[SyncWriteItem] Unknown device : %s", msg->joint_name[i].c_str());
         continue;
       }
     }
@@ -1933,7 +1943,7 @@ void RobotisController::setCtrlModuleThread(std::string ctrl_module)
                 port_to_sync_write_current_[dxl->port_name_]->addParam(dxl->id_, sync_write_data);
 
               if (port_to_sync_write_velocity_[dxl->port_name_] != NULL)
-                port_to_sync_write_velocity_[dxl->port_name_]->removeParam(dxl->id_);              
+                port_to_sync_write_velocity_[dxl->port_name_]->removeParam(dxl->id_);
               std::pair<std::string, std::string> key = std::make_pair(dxl->port_name_, dxl->model_name_);
               if (port_to_sync_write_position_[key] != NULL)
                 port_to_sync_write_position_[key]->removeParam(dxl->id_);
