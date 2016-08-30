@@ -983,7 +983,6 @@ void RobotisController::process()
   is_process_running = true;
 
   // ROS_INFO("Controller::Process()");
-  bool do_sync_write = false;
 
   ros::Time start_time;
   ros::Duration time_duration;
@@ -1129,7 +1128,6 @@ void RobotisController::process()
 
           if (dxl->ctrl_module_name_ == (*module_it)->getModuleName())
           {
-            do_sync_write = true;
             DynamixelState *result_state = (*module_it)->result_[joint_name];
 
             if (result_state == NULL)
@@ -1298,7 +1296,7 @@ void RobotisController::process()
     }
 
     // SyncWrite
-    if (gazebo_mode_ == false && do_sync_write)
+    if (gazebo_mode_ == false)
     {
       if (direct_sync_write_.size() > 0)
       {
