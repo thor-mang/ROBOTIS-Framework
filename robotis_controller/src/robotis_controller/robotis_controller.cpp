@@ -1140,7 +1140,7 @@ void RobotisController::process()
 
             if ((*module_it)->getControlMode() == PositionControl)
             {
-//            if (std::isnan(result_state->goal_position_))
+              if (std::isnan(result_state->goal_position_))
                 continue;
 
               dxl_state->goal_position_ = result_state->goal_position_;
