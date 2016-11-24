@@ -660,6 +660,7 @@ void RobotisController::msgQueueThread()
   present_joint_state_pub_  = ros_node.advertise<sensor_msgs::JointState>("robotis/joints/present_joint_states", 10);
   current_module_pub_       = ros_node.advertise<robotis_controller_msgs::JointCtrlModule>(
                                                               "robotis/present_joint_ctrl_modules", 10);
+  bulk_read_status_pub_     = ros_node.advertise<diagnostic_msgs::DiagnosticArray>("status/bulk_read", 10);
 
   if (gazebo_mode_ == true)
   {
@@ -1005,7 +1006,12 @@ void RobotisController::process()
       for (auto& it : port_to_bulk_read_)
       {
         robot_->ports_[it.first]->setPacketTimeout(0.0);
-        it.second->rxPacket();
+        dynamixel::CommResult result;
+        it.second->rxPacket(result);
+//        if (result.code != COMM_SUCCESS) {
+//          //TODO publish somewhere?
+//          //TODO joint state should not be published now
+//        }
       }
 
       // -> save to robot->dxls_[]->dxl_state_
@@ -1446,6 +1452,7 @@ void RobotisController::process()
   }
 
   // publish present & goal position
+  diagnostic_msgs::DiagnosticArray bulk_read_status_array;
   for (auto& dxl_it : robot_->dxls_)
   {
     std::string joint_name  = dxl_it.first;
@@ -1460,11 +1467,23 @@ void RobotisController::process()
     goal_state.position.push_back(dxl->dxl_state_->goal_position_);
     goal_state.velocity.push_back(dxl->dxl_state_->goal_velocity_);
     goal_state.effort.push_back(dxl->dxl_state_->goal_torque_);
+
+    diagnostic_msgs::DiagnosticStatus bulk_read_status_msg;
+    int result_code = port_to_bulk_read_[dxl->port_name_]->getLastResult(dxl->id_);
+    int level = 0 ? 2: (result_code == COMM_SUCCESS);
+    bulk_read_status_msg.level = level;
+    bulk_read_status_msg.name = joint_name;
+    bulk_read_status_msg.hardware_id = dxl->id_;
+    bulk_read_status_msg.message = std::to_string(result_code);
+    //bulk_read_status_msg.values.push_back(result_code);
+
+    bulk_read_status_array.status.push_back(bulk_read_status_msg);
   }
 
   // -> publish present joint_states & goal joint states topic
   present_joint_state_pub_.publish(present_state);
   goal_joint_state_pub_.publish(goal_state);
+  bulk_read_status_pub_.publish(bulk_read_status_array);
 
   if (DEBUG_PRINT)
   {

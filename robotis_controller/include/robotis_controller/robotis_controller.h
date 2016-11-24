@@ -45,6 +45,7 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Float64.h>
 #include <sensor_msgs/JointState.h>
+#include <diagnostic_msgs/DiagnosticArray.h>
 
 #include <robotis_controller_msgs/RebootDevice.h>
 #include "robotis_controller_msgs/SyncWriteItem.h"
@@ -133,6 +134,8 @@ public:
   ros::Publisher  goal_joint_state_pub_;
   ros::Publisher  present_joint_state_pub_;
   ros::Publisher  current_module_pub_;
+
+  ros::Publisher bulk_read_status_pub_; // TODO publisher should publish all status messages, not only bulk read
 
   std::map<std::string, ros::Publisher> gazebo_joint_position_pub_;
   std::map<std::string, ros::Publisher> gazebo_joint_velocity_pub_;
