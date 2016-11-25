@@ -135,7 +135,7 @@ public:
   ros::Publisher  present_joint_state_pub_;
   ros::Publisher  current_module_pub_;
 
-  ros::Publisher bulk_read_status_pub_; // TODO publisher should publish all status messages, not only bulk read
+  ros::Publisher dxl_status_pub_;
 
   std::map<std::string, ros::Publisher> gazebo_joint_position_pub_;
   std::map<std::string, ros::Publisher> gazebo_joint_velocity_pub_;
