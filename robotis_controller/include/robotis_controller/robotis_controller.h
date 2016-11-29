@@ -48,6 +48,7 @@
 #include <diagnostic_msgs/DiagnosticArray.h>
 
 #include <robotis_controller_msgs/RebootDevice.h>
+#include "robotis_controller_msgs/WriteControlTable.h"
 #include "robotis_controller_msgs/SyncWriteItem.h"
 #include "robotis_controller_msgs/JointCtrlModule.h"
 #include "robotis_controller_msgs/GetJointModule.h"
@@ -165,6 +166,7 @@ public:
 
   /* ROS Topic Callback Functions */
   void    rebootDeviceCallback(const robotis_controller_msgs::RebootDevice::ConstPtr &msg);
+  void    writeControlTableCallback(const robotis_controller_msgs::WriteControlTable::ConstPtr &msg);
   void    syncWriteItemCallback(const robotis_controller_msgs::SyncWriteItem::ConstPtr &msg);
   void    setControllerModeCallback(const std_msgs::String::ConstPtr &msg);
   void    setJointStatesCallback(const sensor_msgs::JointState::ConstPtr &msg);
