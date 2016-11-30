@@ -1034,6 +1034,7 @@ void RobotisController::process()
               if (port_to_bulk_read_[port_name]->isAvailable(dxl->id_, item->address_, item->data_length_) == true)
               {
                 data = port_to_bulk_read_[port_name]->getData(dxl->id_, item->address_, item->data_length_);
+                dxl->dxl_state_->read_result_ = port_to_bulk_read_[port_name]->getLastResult(dxl->id_);
 
                 // change dxl_state
                 if (dxl->present_position_item_ != 0 && item->item_name_ == dxl->present_position_item_->item_name_)

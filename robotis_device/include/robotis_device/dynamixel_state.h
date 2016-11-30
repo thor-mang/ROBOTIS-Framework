@@ -66,6 +66,8 @@ public:
   int       velocity_i_gain_;
   int       velocity_d_gain_;
 
+  int       read_result_;
+
   std::map<std::string, uint32_t> bulk_read_table_;
 
   double    position_offset_;
