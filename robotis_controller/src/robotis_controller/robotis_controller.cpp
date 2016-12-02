@@ -1512,7 +1512,7 @@ void RobotisController::process()
 
     diagnostic_msgs::DiagnosticStatus dxl_status_msg;
     int result_code = port_to_bulk_read_[dxl->port_name_]->getLastResult(dxl->id_);
-    int level = diagnostic_msgs::DiagnosticStatus::OK ? diagnostic_msgs::DiagnosticStatus::ERROR : (result_code == COMM_SUCCESS);
+    int level = (result_code == COMM_SUCCESS) ? (int)diagnostic_msgs::DiagnosticStatus::OK : (int)diagnostic_msgs::DiagnosticStatus::ERROR;
     dxl_status_msg.level = level;
     dxl_status_msg.name = joint_name;
     dxl_status_msg.hardware_id = dxl->id_;
