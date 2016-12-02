@@ -1008,12 +1008,7 @@ void RobotisController::process()
       for (auto& it : port_to_bulk_read_)
       {
         robot_->ports_[it.first]->setPacketTimeout(0.0);
-        dynamixel::CommResult result;
-        it.second->rxPacket(result);
-//        if (result.code != COMM_SUCCESS) {
-//          //TODO publish somewhere?
-//          //TODO joint state should not be published now
-//        }
+        it.second->rxPacket();
       }
 
       // -> save to robot->dxls_[]->dxl_state_
@@ -1534,6 +1529,8 @@ void RobotisController::process()
       present_state.position.push_back(dxl->dxl_state_->present_position_);
       present_state.velocity.push_back(dxl->dxl_state_->present_velocity_);
       present_state.effort.push_back(dxl->dxl_state_->present_torque_);
+    } else {
+      ROS_WARN_STREAM("Not publishing joint " << joint_name << " because result is " << result_code);
     }
 
     goal_state.name.push_back(joint_name);
@@ -1683,7 +1680,7 @@ void RobotisController::syncWriteItemCallback(const robotis_controller_msgs::Syn
   for (int i = 0; i < msg->joint_name.size(); i++)
   {
     if (robot_->dxls_.count(msg->joint_name[i]) == 0) {
-      ROS_WARN_STREAM("Unknown joint: " << msg->joint_name[i]);
+      ROS_WARN_STREAM("Unknown joifnt: " << msg->joint_name[i]);
       continue;
     }
 
