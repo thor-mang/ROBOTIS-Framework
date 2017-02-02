@@ -106,8 +106,6 @@ private:
   void offsetsCallback(robotis_controller::OffsetsConfig &config, uint32_t level);
 
 public:
-  static const int  CONTROL_CYCLE_MSEC  = 8;    // 8 msec
-
   bool              DEBUG_PRINT;
   Robot            *robot_;
 
