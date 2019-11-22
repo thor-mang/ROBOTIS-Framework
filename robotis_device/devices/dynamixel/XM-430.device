@@ -32,7 +32,6 @@ velocity_p_gain_item_name       = velocity_p_gain
    7   | ID                       | 1      | RW     | EEPROM | 0             | 252         | N
    8   | baudrate                 | 1      | RW     | EEPROM | 0             | 7           | N
    9   | return_delay_time        | 1      | RW     | EEPROM | 0             | 254         | N
-   10  | drive_mode               | 1      | RW     | EEPROM | 0             | 3           | N
    11  | operating_mode           | 1      | RW     | EEPROM | 0             | 16          | N
    20  | homing_offset            | 4      | RW     | EEPROM | -1044479      | 1044479     | Y
    24  | moving_threshold         | 4      | RW     | EEPROM | 0             | 1023        | N
